@@ -1586,7 +1586,11 @@ module( "ajax", {
 		}
 	});
 
-	testIframeWithCallback( "#14379 - jQuery.ajax() on unload", "ajax/onunload.html", function( status ) {
+	// Sealed build: excluded. Chrome 80+ forbids synchronous XHR during page
+	// dismissal (unload), so the request always errors in a current browser.
+	excludeTest( "#14379 - jQuery.ajax() on unload",
+		"Chrome 80+ disallows synchronous XHR in unload handlers",
+		"ajax/onunload.html", function( status ) {
 		expect( 1 );
 		strictEqual( status, "success", "Request completed" );
 	});

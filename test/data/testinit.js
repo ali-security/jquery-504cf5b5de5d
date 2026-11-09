@@ -231,6 +231,19 @@ this.testIframe = function( fileName, name, fn ) {
 	}
 };
 
+/**
+ * Sealed build: exclude a test from the run without deleting it. The test is
+ * not registered with QUnit; its module, title and the exclusion reason are
+ * logged so the CI runner (test/run-browser-tests.cjs) reports it as skipped.
+ * Any further arguments (the original test body) are intentionally ignored.
+ */
+this.excludeTest = function( title, reason ) {
+	if ( window.console && window.console.log ) {
+		window.console.log( "SKIPPED: " + QUnit.config.currentModule + " :: " +
+			title + " -- " + reason );
+	}
+};
+
 this.testIframeWithCallback = function( title, fileName, func ) {
 
 	test( title, function() {

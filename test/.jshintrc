@@ -40,6 +40,7 @@
 		"ajaxTest": false,
 		"testIframe": false,
 		"testIframeWithCallback": false,
+		"excludeTest": false,
 		"iframeCallback": true,
 		"createDashboardXML": false,
 		"createXMLFragment": false,
