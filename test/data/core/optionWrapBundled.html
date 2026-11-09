@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Bundled jQuery copy: &lt;option&gt;/&lt;optgroup&gt; HTML isn't parsed inside a &lt;select&gt; wrapper (gh-4647, CVE-2020-11023)</title>
+	<script src="../../../src/sizzle/test/jquery.js"></script>
+	<script>
+		window.sizzleTestjQuery = jQuery.noConflict( true );
+	</script>
+</head>
+<body>
+	<script>
+		// Sanitized markup that only becomes dangerous inside a <select> wrapper:
+		// the stray </select> closes the wrapper and the rest is re-parsed.
+		// "xss(#)" is swapped for a recorder call carrying a per-payload index.
+		var templates = [
+				"<option><style></option></select><img src=url404 onerror=xss(#)></style>",
+				"<optgroup><style></optgroup></select><img src=url404 onerror=xss(#)></style>",
+				"<option><xmp></option></select><img src=url404 onerror=xss(#)></xmp>"
+			],
+			probe = document.createElement( "div" ),
+			result;
+
+		// Support: IE <=9 only
+		// IE <=9 replaces <option> tags with their contents when inserted outside of
+		// the select element, so the select wrapper is still required there.
+		probe.innerHTML = "<option></option>";
+
+		function nodeNames( nodes ) {
+			var names = [],
+				i;
+
+			for ( i = 0; i < nodes.length; i++ ) {
+				names.push( nodes[ i ].nodeName.toLowerCase() );
+			}
+			return names.join( "," );
+		}
+
+		function check( $ ) {
+			var container, i, j, html,
+				payloads = [],
+				methods = [
+					[ "html", function( html ) {
+						$( "<div></div>" ).appendTo( container ).html( html );
+					} ],
+					[ "append", function( html ) {
+						$( "<div></div>" ).appendTo( container ).append( html );
+					} ],
+					[ "prepend", function( html ) {
+						$( "<div></div>" ).appendTo( container ).prepend( html );
+					} ],
+					[ "before", function( html ) {
+						$( "<div></div>" ).appendTo( container ).before( html );
+					} ],
+					[ "after", function( html ) {
+						$( "<div></div>" ).appendTo( container ).after( html );
+					} ],
+					[ "jQuery", function( html ) {
+						$( html );
+					} ],
+					[ "jQuery.parseHTML", function( html ) {
+
+						// Use the live document as context; the default inert document
+						// never loads images, so it can't expose the payload
+						$.parseHTML( html, document );
+					} ]
+				],
+				outcome = {
+					version: $.fn.jquery,
+					optionParses: !!probe.lastChild,
+					supportOption: $.support.option,
+					controlFired: false,
+					executed: []
+				};
+
+			window.xss_sizzle = function( index ) {
+				if ( index === -1 ) {
+					outcome.controlFired = true;
+				} else {
+					outcome.executed.push( payloads[ index ] );
+				}
+			};
+
+			// Inside a <select> wrapper the stray </select> would close the wrapper and
+			// change how the rest of the markup is parsed.
+			outcome.jQueryNodes = nodeNames( $( "<option>a</option></select><b>b</b>" ) );
+			outcome.htmlChildren = nodeNames( $( "<div></div>" ).html( "<option>a</option></select><b>b</b>" ).children() );
+			outcome.appendChildren = nodeNames( $( "<div></div>" ).append( "<optgroup label='g'></optgroup></select><b>b</b>" ).children() );
+			outcome.parseHTMLNodes = nodeNames( $.parseHTML( "<optgroup label='g'></optgroup></select><b>b</b>" ) );
+
+			// <option> markup still works where it is meant to go
+			outcome.selectOptions = $( "<select></select>" ).append( "<option>1</option><option>2</option>" ).children( "option" ).length;
+
+			container = $( "<div></div>" ).appendTo( document.body );
+
+			for ( i = 0; i < templates.length; i++ ) {
+				for ( j = 0; j < methods.length; j++ ) {
+					html = templates[ i ].replace( "xss(#)", "xss_sizzle(" + payloads.length + ")" );
+					payloads.push( methods[ j ][ 0 ] + "( " + html + " )" );
+					methods[ j ][ 1 ]( html );
+				}
+			}
+
+			// Control: a plainly injected handler does fire in this page, proving
+			// the url404 payloads above are live in this browser.
+			$( "<div></div>" ).appendTo( container ).html( "<img src=url404 onerror=xss_sizzle(-1)>" );
+
+			return outcome;
+		}
+
+		result = check( window.sizzleTestjQuery );
+
+		// Give the url404 images time to fail and fire any injected onerror handler
+		setTimeout(function() {
+			window.parent.iframeCallback( result );
+		}, 1500 );
+	</script>
+</body>
+</html>

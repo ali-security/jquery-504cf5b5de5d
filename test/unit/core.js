@@ -1390,6 +1390,32 @@ testIframeWithCallback( "Self-closing non-void tags are not expanded - bundled j
 	strictEqual( result.controlFired, true, "1.9.1: a plainly injected handler does run (control)" );
 });
 
+testIframeWithCallback( "<option>/<optgroup> HTML isn't parsed inside a <select> wrapper - bundled jQuery 1.9.1 (src/sizzle/test/jquery.js) (gh-4647)", "core/optionWrapBundled.html", function( result ) {
+	expect( 9 );
+
+	strictEqual( result.version, "1.9.1", "src/sizzle/test/jquery.js is jQuery 1.9.1" );
+	strictEqual( result.supportOption, result.optionParses,
+		"1.9.1: jQuery.support.option tells whether a bare <option> parses outside a <select>" );
+
+	// Support: IE <=9 only
+	// The select wrapper is still required where a bare <option> doesn't parse.
+	if ( result.optionParses ) {
+		strictEqual( result.jQueryNodes, "option,b", "1.9.1 jQuery(): option and its sibling are both created" );
+		strictEqual( result.htmlChildren, "option,b", "1.9.1 html(): option and its sibling are both created" );
+		strictEqual( result.appendChildren, "optgroup,b", "1.9.1 append(): optgroup and its sibling are both created" );
+		strictEqual( result.parseHTMLNodes, "optgroup,b", "1.9.1 jQuery.parseHTML(): optgroup and its sibling are both created" );
+	} else {
+		ok( true, "1.9.1: <option> needs a <select> wrapper in this browser" );
+		ok( true, "1.9.1: <option> needs a <select> wrapper in this browser" );
+		ok( true, "1.9.1: <option> needs a <select> wrapper in this browser" );
+		ok( true, "1.9.1: <option> needs a <select> wrapper in this browser" );
+	}
+
+	strictEqual( result.selectOptions, 2, "1.9.1 append(): <option> markup still lands in a <select>" );
+	deepEqual( result.executed, [], "1.9.1: no sanitized <option>/<optgroup> payload is executed" );
+	strictEqual( result.controlFired, true, "1.9.1: a plainly injected handler does run (control)" );
+});
+
 test("jQuery.parseJSON", function() {
 	expect( 20 );
 

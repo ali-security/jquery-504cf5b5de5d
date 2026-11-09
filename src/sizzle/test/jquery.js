@@ -1396,6 +1396,12 @@ jQuery.support = (function() {
 	select.disabled = true;
 	support.optDisabled = !opt.disabled;
 
+	// Support: IE <=9 only
+	// IE <=9 replaces <option> tags with their contents when inserted outside of
+	// the select element.
+	div.innerHTML = "<option></option>";
+	support.option = !!div.lastChild;
+
 	// Support: IE<9
 	try {
 		delete div.test;
@@ -5850,7 +5856,6 @@ var nodeNames = "abbr|article|aside|audio|bdi|canvas|data|datalist|details|figca
 
 	// We have to close these tags to support XHTML (#13200)
 	wrapMap = {
-		option: [ 1, "<select multiple='multiple'>", "</select>" ],
 		legend: [ 1, "<fieldset>", "</fieldset>" ],
 		area: [ 1, "<map>", "</map>" ],
 		param: [ 1, "<object>", "</object>" ],
@@ -5866,9 +5871,15 @@ var nodeNames = "abbr|article|aside|audio|bdi|canvas|data|datalist|details|figca
 	safeFragment = createSafeFragment( document ),
 	fragmentDiv = safeFragment.appendChild( document.createElement("div") );
 
-wrapMap.optgroup = wrapMap.option;
 wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
 wrapMap.th = wrapMap.td;
+
+// Support: IE <=9 only
+// IE <=9 replaces <option> tags with their contents when inserted outside of
+// the select element.
+if ( !jQuery.support.option ) {
+	wrapMap.optgroup = wrapMap.option = [ 1, "<select multiple='multiple'>", "</select>" ];
+}
 
 jQuery.fn.extend({
 	text: function( value ) {
