@@ -23,7 +23,7 @@ test("jQuery()", function() {
 		obj = jQuery("div"),
 		code = jQuery("<code/>"),
 		img = jQuery("<img/>"),
-		div = jQuery("<div/><hr/><code/><b/>"),
+		div = jQuery("<div></div><hr/><code></code><b/>"),
 		exec = false,
 		lng = "",
 		expected = 22,
@@ -1372,6 +1372,23 @@ if ( jQuery.support.createHTMLDocument ) {
 		}, 2000);
 	});
 }
+
+testIframeWithCallback( "Self-closing non-void tags are not expanded - bundled jQuery 1.9.1 (src/sizzle/test/jquery.js) (gh-4642)", "core/xhtmlSelfClosingBundled.html", function( result ) {
+	expect( 12 );
+
+	strictEqual( result.version, "1.9.1", "src/sizzle/test/jquery.js is jQuery 1.9.1" );
+	strictEqual( result.htmlChildren, 1, "1.9.1 html(): Found one child" );
+	strictEqual( result.htmlGrandchildren, 1, "1.9.1 html(): Found one grandchild" );
+	strictEqual( result.appendChildren, 1, "1.9.1 append(): Found one child" );
+	strictEqual( result.appendGrandchildren, 1, "1.9.1 append(): Found one grandchild" );
+	strictEqual( result.topLevel, 1, "1.9.1 jQuery(): Found one top-level element" );
+	strictEqual( result.topLevelChildren, 1, "1.9.1 jQuery(): Found one child" );
+	strictEqual( result.parseHTMLTopLevel, 1, "1.9.1 jQuery.parseHTML(): Found one top-level element" );
+	strictEqual( result.explicitChildren, 2, "1.9.1 html(): explicitly closed tags still give two children" );
+	strictEqual( result.voidTags, 3, "1.9.1 html(): self-closing void tags are still parsed" );
+	deepEqual( result.executed, [], "1.9.1: no sanitized htmlString executes its payload" );
+	strictEqual( result.controlFired, true, "1.9.1: a plainly injected handler does run (control)" );
+});
 
 test("jQuery.parseJSON", function() {
 	expect( 20 );

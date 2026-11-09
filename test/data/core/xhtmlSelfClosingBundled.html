@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Bundled jQuery copy: XHTML-style self-closing non-void tags are not expanded (gh-4642, CVE-2020-11022)</title>
+	<script src="../../../src/sizzle/test/jquery.js"></script>
+	<script>
+		window.sizzleTestjQuery = jQuery.noConflict( true );
+	</script>
+</head>
+<body>
+	<script>
+		// "xss(#)" is swapped for a recorder call carrying a per-payload index.
+		var htmlStrings = [
+				// Thanks to Masato Kinugawa from Cure53 for providing the following test cases.
+				"<img alt=\"<x\" title=\"/><img src=url404 onerror=xss(#)>\">",
+				"<img alt=\"\n<x\" title=\"/>\n<img src=url404 onerror=xss(#)>\">",
+				"<style><style/><img src=url404 onerror=xss(#)>",
+				"<xmp><xmp/><img src=url404 onerror=xss(#)>",
+				"<title><title /><img src=url404 onerror=xss(#)>",
+				"<iframe><iframe/><img src=url404 onerror=xss(#)>",
+				"<noframes><noframes/><img src=url404 onerror=xss(#)>",
+				"<noscript><noscript/><img src=url404 onerror=xss(#)>",
+				"<foo\" alt=\"\" title=\"/><img src=url404 onerror=xss(#)>\">",
+				"<img alt=\"<x\" title=\"\" src=\"/><img src=url404 onerror=xss(#)>\">",
+				"<noscript/><img src=url404 onerror=xss(#)>",
+				"<template><style></template><img src=url404 onerror=xss(#)>",
+				"<textarea><textarea/><img src=url404 onerror=xss(#)>",
+				"<noembed><noembed/><img src=url404 onerror=xss(#)>"
+			],
+			result;
+
+		function check( $ ) {
+			var div, container, i, j, html,
+				payloads = [],
+				methods = [
+					[ "html", function( html ) {
+						$( "<div></div>" ).appendTo( container ).html( html );
+					} ],
+					[ "append", function( html ) {
+						$( "<div></div>" ).appendTo( container ).append( html );
+					} ],
+					[ "before", function( html ) {
+						$( "<div></div>" ).appendTo( container ).before( html );
+					} ],
+					[ "jQuery", function( html ) {
+						$( html );
+					} ],
+					[ "jQuery.parseHTML", function( html ) {
+
+						// Use the live document as context; the default inert document
+						// never loads images, so it can't expose the payload
+						$.parseHTML( html, document );
+					} ]
+				],
+				outcome = {
+					version: $.fn.jquery,
+					controlFired: false,
+					executed: []
+				};
+
+			window.xss_sizzle = function( index ) {
+				if ( index === -1 ) {
+					outcome.controlFired = true;
+				} else {
+					outcome.executed.push( payloads[ index ] );
+				}
+			};
+
+			div = $( "<div></div>" ).html( "<div/><div/>" );
+			outcome.htmlChildren = div.children().length;
+			outcome.htmlGrandchildren = div.children().children().length;
+
+			div = $( "<div></div>" ).append( "<div/><div/>" );
+			outcome.appendChildren = div.children().length;
+			outcome.appendGrandchildren = div.children().children().length;
+
+			div = $( "<div/><div/>" );
+			outcome.topLevel = div.length;
+			outcome.topLevelChildren = div.children().length;
+
+			outcome.parseHTMLTopLevel = $.parseHTML( "<div/><div/>" ).length;
+
+			outcome.explicitChildren = $( "<div></div>" ).html( "<div></div><div></div>" ).children().length;
+			outcome.voidTags = $( "<div></div>" ).html( "<img/><br/><input/>" ).children().length;
+
+			container = $( "<div></div>" ).appendTo( document.body );
+
+			for ( i = 0; i < htmlStrings.length; i++ ) {
+				for ( j = 0; j < methods.length; j++ ) {
+					html = htmlStrings[ i ].replace( "xss(#)", "xss_sizzle(" + payloads.length + ")" );
+					payloads.push( methods[ j ][ 0 ] + "( " + html + " )" );
+					methods[ j ][ 1 ]( html );
+				}
+			}
+
+			// Control: a plainly injected handler does fire in this page, proving
+			// the url404 payloads above are live in this browser.
+			$( "<div></div>" ).appendTo( container ).html( "<img src=url404 onerror=xss_sizzle(-1)>" );
+
+			return outcome;
+		}
+
+		result = check( window.sizzleTestjQuery );
+
+		// Give the url404 images time to fail and fire any injected onerror handler
+		setTimeout(function() {
+			window.parent.iframeCallback( result );
+		}, 1500 );
+	</script>
+</body>
+</html>
